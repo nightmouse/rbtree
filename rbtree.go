@@ -3,6 +3,7 @@ package rbtree
 import (
     "math"
     "bytes"
+    "fmt"
 )
 
 type color bool
@@ -62,7 +63,7 @@ func New() (*RBTree) {
     return  &RBTree{}
 }
 
-func (t RBTree) size() int64 { 
+func (t RBTree) size() uint64 { 
     return t.nodeCount
 }
 
@@ -71,33 +72,34 @@ func (t RBTree) height() int64 {
 }
 
 func (t*RBTree) Insert(values ...int64) { 
-    for v := range values {
+    for  _,v := range values {
         t.nodeCount += 1
         if t.root == nil {  // special case - nil root node
             t.root = newLeafNode(nil, v)
-            node = t.root
-            t.color = black
+            t.root.color = black
             continue
         }
 
-        node := t.root
+        n := t.root
         for { 
-            if node.value == v { 
+            if n.value == v { 
                break  
-            } else if node.value < v { 
-                if node.left == nil {
-                    node.left = newLeafNode(node, v)
-                    //rebalance(node.left)
+            } else if v < n.value  { 
+                if n.left == nil {
+                    fmt.Println("inserting left: ", v)
+                    n.left = newLeafNode(n, v)
+                    //rebalance(n.left)
                     break
                 }
-                node = node.left
-            } else if node.value > value { 
-                if node.right == nil { 
-                    node.right = newLeafNode(node, v)
-                    //rebalance(node.right)
+                n = n.left
+            } else if v > n.value { 
+                if n.right == nil { 
+                    fmt.Println("inserting right: ", v)
+                    n.right = newLeafNode(n, v)
+                    //rebalance(n.right)
                     break
                 }
-                node = node.right
+                n = n.right
             }
         } // end for loop
     } // end for loop 
@@ -159,9 +161,9 @@ func (t*RBTree) Insert(values ...int64) {
 
 // (value color) (value, color) (value, color)
 func (t *RBTree) String() string { 
-    buffer := bytes.Buffer
+    buffer := &bytes.Buffer{}
     fn := func(n *node) { 
-      buffer.WriteString(fmt.Sprintf("(%d, %s)"), n.value, n.color)
+      buffer.WriteString(fmt.Sprintf("(%d, %s)", n.value, n.color))
     }
 
     t.Do(fn)
@@ -172,7 +174,7 @@ func (t *RBTree) String() string {
 func (t *RBTree) Do(fn func(*node)) {
     var preorderTraverse func(n*node)
     preorderTraverse = func(n *node) { 
-         if n = nil { 
+         if n == nil { 
             return
          }
 
@@ -184,15 +186,15 @@ func (t *RBTree) Do(fn func(*node)) {
     preorderTraverse(t.root)
 }
 
-func (t *RBTree) Iterate()  {
+func (t *RBTree) Iterate() chan <- int64  {
     ch := make(chan int64)
     count := uint64(0)
     
     fn :=  func(n *node) { 
         ch <- n.value;
         count++
-        if count == t.nodes { 
-            ch.close()            
+        if count == t.nodeCount { 
+            close(ch)
         }
     }
 

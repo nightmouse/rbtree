@@ -1,22 +1,19 @@
-package rbtree_test
+package rbtree
 
 import (
     "testing"
-    "rbtree"
     "fmt"
 )
 
-func TestInsert(t *testing.T) {
-    tree := rbtree.New()
-    tree.Insert(5)
-    tree.Insert(4)
-    tree.Insert(7)
-    tree.Insert(3)
-    tree.Insert(2)
-    tree.Insert(1)
-    tree.Insert(6)
-    tree.Insert(7)
-    tree.Insert(8)
-    tree.Insert(9)
+func TestNew(t *testing.T) {
+    tree := New()
+    if tree.String() != "" { 
+        t.Error("empty tree somehow made a non-empty string")
+    }
+}
+
+func TestInsert(t *testing.T) { 
+    tree := New()
+    tree.Insert(5,4,7,3,2,6,8,9)
     fmt.Println(tree)  
 }
