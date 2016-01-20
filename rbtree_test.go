@@ -17,3 +17,12 @@ func TestInsert(t *testing.T) {
 	tree.Insert(5, 4, 7, 3, 2, 6, 8, 9)
 	fmt.Println(tree)
 }
+
+func TestRange(t *testing.T) {
+    expected := []int64{5, 4, 7, 3, 2, 6, 8, 9}
+	tree := New()
+	tree.Insert(expected...)
+    for v := range tree.Iterate() { 
+        fmt.Println(v)
+    }
+}
