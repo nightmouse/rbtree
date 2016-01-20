@@ -86,7 +86,6 @@ func (t *RBTree) Insert(values ...int64) {
 				break
 			} else if v < n.value {
 				if n.left == nil {
-					fmt.Println("inserting left: ", v)
 					n.left = newLeafNode(n, v)
 					//rebalance(n.left)
 					break
@@ -94,7 +93,6 @@ func (t *RBTree) Insert(values ...int64) {
 				n = n.left
 			} else if v > n.value {
 				if n.right == nil {
-					fmt.Println("inserting right: ", v)
 					n.right = newLeafNode(n, v)
 					//rebalance(n.right)
 					break
@@ -186,7 +184,7 @@ func (t *RBTree) Do(fn func(*node)) {
 	preorderTraverse(t.root)
 }
 
-func (t *RBTree) Iterate() chan<- int64 {
+func (t *RBTree) Iterate() <- chan int64 {
 	ch := make(chan int64)
 	count := uint64(0)
 
