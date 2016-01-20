@@ -1,108 +1,108 @@
 package rbtree
 
 import (
-    "math"
-    "bytes"
-    "fmt"
+	"bytes"
+	"fmt"
+	"math"
 )
 
 type color bool
 
-func (c color) String() string { 
-  if c == black { 
-    return "black"
-  }
-  return "red"
+func (c color) String() string {
+	if c == black {
+		return "black"
+	}
+	return "red"
 }
 
 const black color = false
 const red color = true
 
 type RBTree struct {
-    nodeCount uint64 
-    root *node
+	nodeCount uint64
+	root      *node
 }
 
 type node struct {
-    color color
-    value int64
-    left *node
-    right *node
-    parent *node
+	color  color
+	value  int64
+	left   *node
+	right  *node
+	parent *node
 }
 
 // creates a new leaf node
-func newLeafNode(parent *node, value int64) (*node) { 
-    return  &node{ color: red,
-                    value: value,
-                    left: nil,
-                    right: nil,
-                    parent: parent }
+func newLeafNode(parent *node, value int64) *node {
+	return &node{color: red,
+		value:  value,
+		left:   nil,
+		right:  nil,
+		parent: parent}
 }
 
 func grandparent(n *node) *node {
-    if n.parent != nil && n.parent.parent != nil { 
-        return n.parent.parent
-    }
-    return nil
+	if n.parent != nil && n.parent.parent != nil {
+		return n.parent.parent
+	}
+	return nil
 }
 
-func uncle(n *node)  *node { 
-    gp := grandparent(n)
-    if gp == nil { 
-        return nil
-    }
+func uncle(n *node) *node {
+	gp := grandparent(n)
+	if gp == nil {
+		return nil
+	}
 
-    if gp.left == n.parent { 
-        return gp.right
-    }
-    return gp.left
+	if gp.left == n.parent {
+		return gp.right
+	}
+	return gp.left
 }
 
-func New() (*RBTree) { 
-    return  &RBTree{}
+func New() *RBTree {
+	return &RBTree{}
 }
 
-func (t RBTree) size() uint64 { 
-    return t.nodeCount
+func (t RBTree) size() uint64 {
+	return t.nodeCount
 }
 
-func (t RBTree) height() int64 { 
-    return  2 * int64(math.Log2(float64(t.nodeCount+1)))
+func (t RBTree) height() int64 {
+	return 2 * int64(math.Log2(float64(t.nodeCount+1)))
 }
 
-func (t*RBTree) Insert(values ...int64) { 
-    for  _,v := range values {
-        t.nodeCount += 1
-        if t.root == nil {  // special case - nil root node
-            t.root = newLeafNode(nil, v)
-            t.root.color = black
-            continue
-        }
+func (t *RBTree) Insert(values ...int64) {
+	for _, v := range values {
+		t.nodeCount += 1
+		if t.root == nil { // special case - nil root node
+			t.root = newLeafNode(nil, v)
+			t.root.color = black
+			continue
+		}
 
-        n := t.root
-        for { 
-            if n.value == v { 
-               break  
-            } else if v < n.value  { 
-                if n.left == nil {
-                    fmt.Println("inserting left: ", v)
-                    n.left = newLeafNode(n, v)
-                    //rebalance(n.left)
-                    break
-                }
-                n = n.left
-            } else if v > n.value { 
-                if n.right == nil { 
-                    fmt.Println("inserting right: ", v)
-                    n.right = newLeafNode(n, v)
-                    //rebalance(n.right)
-                    break
-                }
-                n = n.right
-            }
-        } // end for loop
-    } // end for loop 
+		n := t.root
+		for {
+			if n.value == v {
+				break
+			} else if v < n.value {
+				if n.left == nil {
+					fmt.Println("inserting left: ", v)
+					n.left = newLeafNode(n, v)
+					//rebalance(n.left)
+					break
+				}
+				n = n.left
+			} else if v > n.value {
+				if n.right == nil {
+					fmt.Println("inserting right: ", v)
+					n.right = newLeafNode(n, v)
+					//rebalance(n.right)
+					break
+				}
+				n = n.right
+			}
+		} // end for loop
+	} // end for loop
 }
 
 //func rotateLeft(n *node) {
@@ -118,13 +118,13 @@ func (t*RBTree) Insert(values ...int64) {
 // Property 5: the root node is always black
 
 //func rebalance(n *node) {
-//    if n.parnet == nil { 
+//    if n.parnet == nil {
 //      return
 //    }
 //
-//    gp : = grandparent(n) 
+//    gp : = grandparent(n)
 //    u := uncle(n)
-//    if gp == nil || u == nil { 
+//    if gp == nil || u == nil {
 //      return
 //    }
 //
@@ -136,7 +136,7 @@ func (t*RBTree) Insert(values ...int64) {
 //        gp.color = !gp.color
 //        return
 //    }
-//    
+//
 //    // case 2 & 3: uncle is black
 //
 //    // case 2
@@ -147,57 +147,57 @@ func (t*RBTree) Insert(values ...int64) {
 //    }
 //
 //    // get the grandparent and uncle since they've (maybe) changed in the rotate
-//    gp : = grandparent(n) 
+//    gp : = grandparent(n)
 //    u := uncle(n)
 //
 //    // case 3
-//    if n.parent. { 
-//      rotateRight(gp) 
+//    if n.parent. {
+//      rotateRight(gp)
 //    } else if {
 //      rotateLeft(gp)
 //    }
-//    
+//
 //}
 
 // (value color) (value, color) (value, color)
-func (t *RBTree) String() string { 
-    buffer := &bytes.Buffer{}
-    fn := func(n *node) { 
-      buffer.WriteString(fmt.Sprintf("(%d, %s)", n.value, n.color))
-    }
+func (t *RBTree) String() string {
+	buffer := &bytes.Buffer{}
+	fn := func(n *node) {
+		buffer.WriteString(fmt.Sprintf("(%d, %s)", n.value, n.color))
+	}
 
-    t.Do(fn)
-    return buffer.String() 
+	t.Do(fn)
+	return buffer.String()
 }
 
 // applies the function fn to each node in pre-order traversal
 func (t *RBTree) Do(fn func(*node)) {
-    var preorderTraverse func(n*node)
-    preorderTraverse = func(n *node) { 
-         if n == nil { 
-            return
-         }
+	var preorderTraverse func(n *node)
+	preorderTraverse = func(n *node) {
+		if n == nil {
+			return
+		}
 
-         fn(n)
+		fn(n)
 
-        preorderTraverse(n.left)
-        preorderTraverse(n.right)
-    }
-    preorderTraverse(t.root)
+		preorderTraverse(n.left)
+		preorderTraverse(n.right)
+	}
+	preorderTraverse(t.root)
 }
 
-func (t *RBTree) Iterate() chan <- int64  {
-    ch := make(chan int64)
-    count := uint64(0)
-    
-    fn :=  func(n *node) { 
-        ch <- n.value;
-        count++
-        if count == t.nodeCount { 
-            close(ch)
-        }
-    }
+func (t *RBTree) Iterate() chan<- int64 {
+	ch := make(chan int64)
+	count := uint64(0)
 
-    go t.Do(fn)
-    return ch
+	fn := func(n *node) {
+		ch <- n.value
+		count++
+		if count == t.nodeCount {
+			close(ch)
+		}
+	}
+
+	go t.Do(fn)
+	return ch
 }
