@@ -18,6 +18,12 @@ func (c color) String() string {
 const black color = false
 const red color = true
 
+const (
+	PREORDER = iota
+	INORDER
+	POSTORDER
+)
+
 type RBTree struct {
 	nodeCount uint64
 	root      *node
@@ -104,27 +110,26 @@ func (t *RBTree) Insert(values ...int64) {
 }
 
 func (t *RBTree) rotateRight(n *node) {
-    lchild := n.left
-    if n == t.root { 
-        t.root = lchild 
-    }
-    n.left = lchild.right 
-    lchild.right = n
-    lchild.parent = n.parent
-    n.parent = lchild
+	lchild := n.left
+	if n == t.root {
+		t.root = lchild
+	}
+	n.left = lchild.right
+	lchild.right = n
+	lchild.parent = n.parent
+	n.parent = lchild
 }
 
-func (t *RBTree)rotateLeft(n *node) {
-    rchild := n.right
-    if n == t.root { 
-        t.root = rchild
-    }
-    n.right = rchild.left
-    rchild.left = n
-    rchild.parent = n.parent
-    n.parent = rchild
+func (t *RBTree) rotateLeft(n *node) {
+	rchild := n.right
+	if n == t.root {
+		t.root = rchild
+	}
+	n.right = rchild.left
+	rchild.left = n
+	rchild.parent = n.parent
+	n.parent = rchild
 }
-
 
 // Property 1: every node is red or black
 // Property 2: all leaf nodes are black
@@ -174,35 +179,61 @@ func (t *RBTree)rotateLeft(n *node) {
 //
 //}
 
+func TraversePreOrder(fn func(*node)) func(*node) {
+	var traverse func(*node)
+	traverse = func(n *node) {
+		if n == nil {
+			return
+		}
+		fn(n)
+		traverse(n.left)
+		traverse(n.right)
+	}
+	return traverse
+}
+
+func TraverseInOrder(fn func(*node)) func(*node) {
+	var traverse func(*node)
+	traverse = func(n *node) {
+		if n == nil {
+			return
+		}
+		traverse(n.left)
+		fn(n)
+		traverse(n.right)
+	}
+	return traverse
+}
+
+func TraversePostOrder(fn func(*node)) func(*node) {
+	var traverse func(*node)
+	traverse = func(n *node) {
+		if n == nil {
+			return
+		}
+		traverse(n.left)
+		traverse(n.right)
+		fn(n)
+	}
+	return traverse
+}
+
+func (t *RBTree) Do(fn func(*node)) {
+	fn(t.root)
+}
+
+// returns a
 // (value color) (value, color) (value, color)
 func (t *RBTree) String() string {
 	buffer := &bytes.Buffer{}
 	fn := func(n *node) {
 		buffer.WriteString(fmt.Sprintf("(%d, %s)", n.value, n.color))
 	}
-
-	t.Do(fn)
+	t.Do(TraverseInOrder(fn))
 	return buffer.String()
 }
 
-// TODO: add other traversal methods
-// applies fn to each node in pre-order traversal
-func (t *RBTree) Do(fn func(*node)) {
-	var preorderTraverse func(n *node)
-	preorderTraverse = func(n *node) {
-		if n == nil {
-			return
-		}
-
-		fn(n)
-
-		preorderTraverse(n.left)
-		preorderTraverse(n.right)
-	}
-	preorderTraverse(t.root)
-}
-
-func (t *RBTree) Iterate() <- chan int64 {
+func (t *RBTree) Iterate() <-chan int64 {
 	ch := make(chan int64)
 	count := uint64(0)
 
@@ -214,27 +245,27 @@ func (t *RBTree) Iterate() <- chan int64 {
 		}
 	}
 
-	go t.Do(fn)
+	go t.Do(TraverseInOrder(fn))
 	return ch
 }
 
 // TODO: there's got to be a more efficient way to do this
-func (t *RBTree) Clone() *RBTree { 
-    newTree := New()
-    fn := func(n *node) { 
-        newTree.Insert(n.value)
-    }
-    t.Do(fn)
-    return newTree
+func (t *RBTree) Clone() *RBTree {
+	newTree := New()
+	fn := func(n *node) {
+		newTree.Insert(n.value)
+	}
+	t.Do(TraversePreOrder(fn))
+	return newTree
 }
 
 // returns a slice of all the values in the tree, in pre-order traversal
 // TODO: return a sorted array when multiple traversals are supported
-func (t *RBTree) Slice() []int64 { 
+func (t *RBTree) Slice() []int64 {
 	slice := make([]int64, 0, t.Size())
 	fn := func(n *node) {
-		slice = append(slice, n.value)	
+		slice = append(slice, n.value)
 	}
-	t.Do(fn)
+	t.Do(TraverseInOrder(fn))
 	return slice
 }

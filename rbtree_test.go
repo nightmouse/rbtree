@@ -19,47 +19,47 @@ func TestInsert(t *testing.T) {
 }
 
 func TestRange(t *testing.T) {
-    expected := []int64{5, 4, 7, 3, 2, 6, 8, 9}
+	expected := []int64{5, 4, 7, 3, 2, 6, 8, 9}
 	tree := New()
 	tree.Insert(expected...)
-    for v := range tree.Iterate() { 
-        fmt.Println(v)
-    }
+	for v := range tree.Iterate() {
+		fmt.Println(v)
+	}
 }
 
 func TestBasicRotateRight(t *testing.T) {
-    expected := []int64{4, 5, 2, 1, 3}
+	expected := []int64{4, 5, 2, 1, 3}
 	tree := New()
 	tree.Insert(expected...)
-    fmt.Println("before: ", tree.String())
-    tree.rotateRight(tree.root)
-    fmt.Println("after: ", tree.String())
+	fmt.Println("before: ", tree.String())
+	tree.rotateRight(tree.root)
+	fmt.Println("after: ", tree.String())
 }
 
 func TestBasicRotateLeft(t *testing.T) {
-    expected := []int64{2, 1, 4, 3, 5}
+	expected := []int64{2, 1, 4, 3, 5}
 	tree := New()
 	tree.Insert(expected...)
-    fmt.Println("before: ", tree.String())
-    tree.rotateLeft(tree.root)
-    fmt.Println("after: ", tree.String())
+	fmt.Println("before: ", tree.String())
+	tree.rotateLeft(tree.root)
+	fmt.Println("after: ", tree.String())
 }
 
 func TestSmallClone(t *testing.T) {
-    expected := []int64{4, 5, 2, 1, 3}
+	expected := []int64{4, 5, 2, 1, 3}
 	tree := New()
 	tree.Insert(expected...)
-    newTree := tree.Clone()
-    if tree.String() != newTree.String() { 
+	newTree := tree.Clone()
+	if tree.String() != newTree.String() {
 		t.Error("Expected ", tree.String(), " got ", newTree.String())
-    }
+	}
 }
 
-func TestSmallSlice(t *testing.T) { 
-    values := []int64{4, 5, 2, 1, 3}
-    //expected:= []int64{4, 5, 2, 1, 3}
-    tree := New()
-    tree.Insert(values...)
-    slice := tree.Slice()
-    fmt.Println(slice)
+func TestSmallSlice(t *testing.T) {
+	values := []int64{4, 5, 2, 1, 3}
+	//expected:= []int64{4, 5, 2, 1, 3}
+	tree := New()
+	tree.Insert(values...)
+	slice := tree.Slice()
+	fmt.Println(slice)
 }
