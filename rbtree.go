@@ -63,11 +63,11 @@ func New() *RBTree {
 	return &RBTree{}
 }
 
-func (t RBTree) size() uint64 {
+func (t RBTree) Size() uint64 {
 	return t.nodeCount
 }
 
-func (t RBTree) height() int64 {
+func (t RBTree) Height() int64 {
 	return 2 * int64(math.Log2(float64(t.nodeCount+1)))
 }
 
@@ -103,11 +103,28 @@ func (t *RBTree) Insert(values ...int64) {
 	} // end for loop
 }
 
-//func rotateLeft(n *node) {
-//}
+func (t *RBTree) rotateRight(n *node) {
+    lchild := n.left
+    if n == t.root { 
+        t.root = lchild 
+    }
+    n.left = lchild.right 
+    lchild.right = n
+    lchild.parent = n.parent
+    n.parent = lchild
+}
 
-//func rotateRight(n *node) {
-//}
+func (t *RBTree)rotateLeft(n *node) {
+    rchild := n.right
+    if n == t.root { 
+        t.root = rchild
+    }
+    n.right = rchild.left
+    rchild.left = n
+    rchild.parent = n.parent
+    n.parent = rchild
+}
+
 
 // Property 1: every node is red or black
 // Property 2: all leaf nodes are black
@@ -115,8 +132,8 @@ func (t *RBTree) Insert(values ...int64) {
 // Property 4: every path from a node to a leaf descendent has the same number of black nodes
 // Property 5: the root node is always black
 
-//func rebalance(n *node) {
-//    if n.parnet == nil {
+//func (t *RBTree) rebalance(n *node) {
+//    if n.parent == nil {
 //      return
 //    }
 //
@@ -168,7 +185,8 @@ func (t *RBTree) String() string {
 	return buffer.String()
 }
 
-// applies the function fn to each node in pre-order traversal
+// TODO: add other traversal methods
+// applies fn to each node in pre-order traversal
 func (t *RBTree) Do(fn func(*node)) {
 	var preorderTraverse func(n *node)
 	preorderTraverse = func(n *node) {
@@ -198,4 +216,25 @@ func (t *RBTree) Iterate() <- chan int64 {
 
 	go t.Do(fn)
 	return ch
+}
+
+// TODO: there's got to be a more efficient way to do this
+func (t *RBTree) Clone() *RBTree { 
+    newTree := New()
+    fn := func(n *node) { 
+        newTree.Insert(n.value)
+    }
+    t.Do(fn)
+    return newTree
+}
+
+// returns a slice of all the values in the tree, in pre-order traversal
+// TODO: return a sorted array when multiple traversals are supported
+func (t *RBTree) Slice() []int64 { 
+	slice := make([]int64, 0, t.Size())
+	fn := func(n *node) {
+		slice = append(slice, n.value)	
+	}
+	t.Do(fn)
+	return slice
 }
