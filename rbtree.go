@@ -18,42 +18,36 @@ func (c color) String() string {
 const black color = false
 const red color = true
 
-const (
-	PREORDER = iota
-	INORDER
-	POSTORDER
-)
-
 type RBTree struct {
 	nodeCount uint64
-	root      *node
+	root      *Node
 }
 
-type node struct {
+type Node struct {
 	color  color
 	value  int64
-	left   *node
-	right  *node
-	parent *node
+	left   *Node
+	right  *Node
+	parent *Node
 }
 
 // creates a new leaf node
-func newLeafNode(parent *node, value int64) *node {
-	return &node{color: red,
+func newLeafNode(parent *Node, value int64) *Node {
+	return &Node{color: red,
 		value:  value,
 		left:   nil,
 		right:  nil,
 		parent: parent}
 }
 
-func grandparent(n *node) *node {
+func grandparent(n *Node) *Node {
 	if n.parent != nil && n.parent.parent != nil {
 		return n.parent.parent
 	}
 	return nil
 }
 
-func uncle(n *node) *node {
+func uncle(n *Node) *Node {
 	gp := grandparent(n)
 	if gp == nil {
 		return nil
@@ -65,14 +59,17 @@ func uncle(n *node) *node {
 	return gp.left
 }
 
+// Create a new, empty red-black tree.
 func New() *RBTree {
 	return &RBTree{}
 }
 
+// Returns the number of nodes in the tree.
 func (t RBTree) Size() uint64 {
 	return t.nodeCount
 }
 
+// Calculates the tree height.
 func (t RBTree) Height() int64 {
 	return 2 * int64(math.Log2(float64(t.nodeCount+1)))
 }
@@ -109,7 +106,7 @@ func (t *RBTree) Insert(values ...int64) {
 	} // end for loop
 }
 
-func (t *RBTree) rotateRight(n *node) {
+func (t *RBTree) rotateRight(n *Node) {
 	lchild := n.left
 	if n == t.root {
 		t.root = lchild
@@ -120,7 +117,7 @@ func (t *RBTree) rotateRight(n *node) {
 	n.parent = lchild
 }
 
-func (t *RBTree) rotateLeft(n *node) {
+func (t *RBTree) rotateLeft(n *Node) {
 	rchild := n.right
 	if n == t.root {
 		t.root = rchild
@@ -137,7 +134,7 @@ func (t *RBTree) rotateLeft(n *node) {
 // Property 4: every path from a node to a leaf descendent has the same number of black nodes
 // Property 5: the root node is always black
 
-//func (t *RBTree) rebalance(n *node) {
+//func (t *RBTree) rebalance(n *Node) {
 //    if n.parent == nil {
 //      return
 //    }
@@ -179,9 +176,11 @@ func (t *RBTree) rotateLeft(n *node) {
 //
 //}
 
-func TraversePreOrder(fn func(*node)) func(*node) {
-	var traverse func(*node)
-	traverse = func(n *node) {
+// Create an annonymous function suitable for use with the Do method.
+// The anonymous function applys fn over the nodes in depth first preorder.
+func TraversePreOrder(fn func(*Node)) func(*Node) {
+	var traverse func(*Node)
+	traverse = func(n *Node) {
 		if n == nil {
 			return
 		}
@@ -192,9 +191,11 @@ func TraversePreOrder(fn func(*node)) func(*node) {
 	return traverse
 }
 
-func TraverseInOrder(fn func(*node)) func(*node) {
-	var traverse func(*node)
-	traverse = func(n *node) {
+// Create an annonymous function suitable for use with the Do method.
+// The anonymous function applys fn over the nodes in depth first in-order.
+func TraverseInOrder(fn func(*Node)) func(*Node) {
+	var traverse func(*Node)
+	traverse = func(n *Node) {
 		if n == nil {
 			return
 		}
@@ -205,9 +206,11 @@ func TraverseInOrder(fn func(*node)) func(*node) {
 	return traverse
 }
 
-func TraversePostOrder(fn func(*node)) func(*node) {
-	var traverse func(*node)
-	traverse = func(n *node) {
+// Create an annonymous function suitable for use with the Do method.
+// The anonymous function applys fn over the nodes in depth first post order.
+func TraversePostOrder(fn func(*Node)) func(*Node) {
+	var traverse func(*Node)
+	traverse = func(n *Node) {
 		if n == nil {
 			return
 		}
@@ -218,26 +221,54 @@ func TraversePostOrder(fn func(*node)) func(*node) {
 	return traverse
 }
 
-func (t *RBTree) Do(fn func(*node)) {
+// Create an annonymous function suitable for use with the Do method.
+// The anonymous function applys fn over the nodes in breadth first order.
+func TraverseBreadthFirst(fn func(*Node)) func(*Node) {
+	var innerFunc func(...*Node)
+	innerFunc = func(nodes ...*Node) {
+		children := make([]*Node, 0, 2*len(nodes))
+		for _, n := range nodes {
+			fn(n)
+			if n.left != nil {
+				children = append(children, n.left)
+			}
+			if n.right != nil {
+				children = append(children, n.right)
+			}
+		}
+		if len(children) > 0 {
+			innerFunc(children...)
+		}
+	}
+
+	traverse := func(n *Node) {
+		innerFunc(n)
+	}
+	return traverse
+}
+
+// Applies fn to the root node.
+func (t *RBTree) Do(fn func(*Node)) {
 	fn(t.root)
 }
 
-// returns a
-// (value color) (value, color) (value, color)
+// Creates a string by visting the nodes in order, with the format of:
+// (value color) (value, color) (value, color)...
 func (t *RBTree) String() string {
 	buffer := &bytes.Buffer{}
-	fn := func(n *node) {
+	fn := func(n *Node) {
 		buffer.WriteString(fmt.Sprintf("(%d, %s)", n.value, n.color))
 	}
 	t.Do(TraverseInOrder(fn))
 	return buffer.String()
 }
 
+// Return a channel suitable for use with range
 func (t *RBTree) Iterate() <-chan int64 {
 	ch := make(chan int64)
 	count := uint64(0)
 
-	fn := func(n *node) {
+	fn := func(n *Node) {
 		ch <- n.value
 		count++
 		if count == t.nodeCount {
@@ -249,21 +280,19 @@ func (t *RBTree) Iterate() <-chan int64 {
 	return ch
 }
 
-// TODO: there's got to be a more efficient way to do this
 func (t *RBTree) Clone() *RBTree {
 	newTree := New()
-	fn := func(n *node) {
+	fn := func(n *Node) {
 		newTree.Insert(n.value)
 	}
-	t.Do(TraversePreOrder(fn))
+	t.Do(TraverseBreadthFirst(fn))
 	return newTree
 }
 
-// returns a slice of all the values in the tree, in pre-order traversal
-// TODO: return a sorted array when multiple traversals are supported
+// Returns an in-order slice of all the values in the tree.
 func (t *RBTree) Slice() []int64 {
 	slice := make([]int64, 0, t.Size())
-	fn := func(n *node) {
+	fn := func(n *Node) {
 		slice = append(slice, n.value)
 	}
 	t.Do(TraverseInOrder(fn))

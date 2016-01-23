@@ -2,6 +2,7 @@ package rbtree
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -57,9 +58,12 @@ func TestSmallClone(t *testing.T) {
 
 func TestSmallSlice(t *testing.T) {
 	values := []int64{4, 5, 2, 1, 3}
-	//expected:= []int64{4, 5, 2, 1, 3}
+	expected := []int64{1, 2, 3, 4, 5}
 	tree := New()
 	tree.Insert(values...)
 	slice := tree.Slice()
 	fmt.Println(slice)
+	if !reflect.DeepEqual(slice, expected) {
+		t.Error("Expected ", expected, " got ", slice)
+	}
 }
