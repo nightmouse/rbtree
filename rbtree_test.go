@@ -67,3 +67,11 @@ func TestSmallSlice(t *testing.T) {
 		t.Error("Expected ", expected, " got ", slice)
 	}
 }
+
+func BenchmarkInsert1k(b *testing.B) {
+    tree := New()
+    for i := 0; i != b.N; i++ {
+        tree.Insert(int64(i))
+    }
+}
+
