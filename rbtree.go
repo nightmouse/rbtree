@@ -18,8 +18,13 @@ func (c color) String() string {
 const black color = false
 const red color = true
 
+// A red-black tree has the following properties:
+// Property 1: every node is red or black
+// Property 2: all leaf (nil) nodes are black
+// Property 3: if a leaf node is red, the all it's children must be black
+// Property 4: every path from a node to a leaf descendent has the same number of black nodes
 type RBTree struct {
-	nodeCount uint64
+	nodeCount int
 	root      *Node
 }
 
@@ -65,12 +70,12 @@ func New() *RBTree {
 }
 
 // Returns the number of nodes in the tree.
-func (t RBTree) Size() uint64 {
+func (t *RBTree) Size() int {
 	return t.nodeCount
 }
 
 // Calculates the tree height.
-func (t RBTree) Height() int64 {
+func (t *RBTree) Height() int64 {
 	return 2 * int64(math.Log2(float64(t.nodeCount+1)))
 }
 
@@ -79,7 +84,7 @@ func (t *RBTree) Insert(values ...int64) {
 		t.nodeCount += 1
 		if t.root == nil { // special case - nil root node
 			t.root = newLeafNode(nil, v)
-			t.root.color = black
+			t.root.color = black // Property 5: the root node is always black
 			continue
 		}
 
@@ -90,14 +95,14 @@ func (t *RBTree) Insert(values ...int64) {
 			} else if v < n.value {
 				if n.left == nil {
 					n.left = newLeafNode(n, v)
-					//rebalance(n.left)
+					t.insertCase1(n.left)
 					break
 				}
 				n = n.left
 			} else if v > n.value {
 				if n.right == nil {
 					n.right = newLeafNode(n, v)
-					//rebalance(n.right)
+					t.insertCase1(n.right)
 					break
 				}
 				n = n.right
@@ -128,53 +133,54 @@ func (t *RBTree) rotateLeft(n *Node) {
 	n.parent = rchild
 }
 
-// Property 1: every node is red or black
-// Property 2: all leaf nodes are black
-// Property 3: if a leaf node is red, the all it's children must be black
-// Property 4: every path from a node to a leaf descendent has the same number of black nodes
-// Property 5: the root node is always black
+func (t *RBTree) insertCase1(n *Node) {
+	if n.parent == nil {
+		n.color = black
+	} else {
+		t.insertCase2(n)
+	}
+}
 
-//func (t *RBTree) rebalance(n *Node) {
-//    if n.parent == nil {
-//      return
-//    }
-//
-//    gp : = grandparent(n)
-//    u := uncle(n)
-//    if gp == nil || u == nil {
-//      return
-//    }
-//
-//    // case 1: uncle is red
-//    // swap colors of uncle, parent, and grand parent
-//    if u.color == red {
-//        n.parent.color = !n.parent.color
-//        u.color =  !u.color
-//        gp.color = !gp.color
-//        return
-//    }
-//
-//    // case 2 & 3: uncle is black
-//
-//    // case 2
-//    if n.parent.left == n && gp.right == n.parent {   // n is a left child of a right child
-//      rotateRight(n.parent)
-//    } else if n.parent.right == n && gp.left == n.parent { // n is a right child or a left child
-//      rotateLeft(n.parent)
-//    }
-//
-//    // get the grandparent and uncle since they've (maybe) changed in the rotate
-//    gp : = grandparent(n)
-//    u := uncle(n)
-//
-//    // case 3
-//    if n.parent. {
-//      rotateRight(gp)
-//    } else if {
-//      rotateLeft(gp)
-//    }
-//
-//}
+func (t *RBTree) insertCase2(n *Node) {
+	if n.parent.color != black {
+		t.insertCase3(n)
+	}
+}
+
+func (t *RBTree) insertCase3(n *Node) {
+	gp := grandparent(n)
+	u := uncle(n)
+	if u != nil && u.color == red {
+		n.parent.color = black
+		gp.color = red
+		t.insertCase1(gp)
+	} else {
+		t.insertCase4(n)
+	}
+}
+
+func (t *RBTree) insertCase4(n *Node) {
+	gp := grandparent(n)
+	if n == n.parent.right && n.parent == gp.left {
+		t.rotateLeft(n)
+		n = n.left
+	} else if n == n.parent.left && n.parent == gp.right {
+		t.rotateRight(n)
+		n = n.right
+	}
+	t.insertCase5(n)
+}
+
+func (t *RBTree) insertCase5(n *Node) {
+	gp := grandparent(n)
+	n.parent.color = black
+	gp.color = red
+	if n == n.parent.left {
+		t.rotateRight(gp)
+	} else {
+		t.rotateLeft(gp)
+	}
+}
 
 // Create an annonymous function suitable for use with the Do method.
 // The anonymous function applys fn over the nodes in depth first preorder.
@@ -221,7 +227,7 @@ func TraversePostOrder(fn func(*Node)) func(*Node) {
 	return traverse
 }
 
-// Create an annonymous function suitable for use with the Do method.
+// TraverseBreadthFirst creates an annonymous function suitable for use with the Do method.
 // The anonymous function applys fn over the nodes in breadth first order.
 func TraverseBreadthFirst(fn func(*Node)) func(*Node) {
 	var innerFunc func(...*Node)
@@ -266,11 +272,17 @@ func (t *RBTree) String() string {
 // Return a channel suitable for use with range
 func (t *RBTree) Iterate() <-chan int64 {
 	ch := make(chan int64)
-	count := uint64(0)
+	if t.root == nil {
+		close(ch)
+		return ch
+	}
+
+	count := 0
 
 	fn := func(n *Node) {
-		ch <- n.value
 		count++
+		ch <- n.value
+		fmt.Println("count: ", count, " nodeCount: ", t.nodeCount, " value: ", n.value)
 		if count == t.nodeCount {
 			close(ch)
 		}
@@ -280,6 +292,7 @@ func (t *RBTree) Iterate() <-chan int64 {
 	return ch
 }
 
+// Clone returns a deep copy of the current tree
 func (t *RBTree) Clone() *RBTree {
 	newTree := New()
 	fn := func(n *Node) {
@@ -289,7 +302,7 @@ func (t *RBTree) Clone() *RBTree {
 	return newTree
 }
 
-// Returns an in-order slice of all the values in the tree.
+// Slice returns an in-order slice of all the values in the tree.
 func (t *RBTree) Slice() []int64 {
 	slice := make([]int64, 0, t.Size())
 	fn := func(n *Node) {
