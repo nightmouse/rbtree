@@ -1,10 +1,27 @@
 package rbtree
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 )
+
+var testData = [][]int64{
+	{},
+	{5},
+	{1, 2},
+	{1, 2, 3},
+	{1, 2, 3, 4},
+	{1, 2, 3, 4, 5},
+	{1, 2, 3, 4, 5, 6},
+}
+
+var reverseTestData = [][]int64{
+	{2, 1},
+	{3, 2, 1},
+	{4, 3, 2, 1},
+	{5, 4, 3, 2, 1},
+	{6, 5, 4, 3, 2, 1},
+}
 
 func TestNew(t *testing.T) {
 	tree := New()
@@ -38,69 +55,81 @@ func TestSimpleColor(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	tree := New()
-	tree.Insert(5, 4, 7, 3, 2, 6, 8, 9)
-	fmt.Println(tree)
+	for _, td := range testData {
+		tree := New()
+		tree.Insert(td...)
+	}
+}
+
+func TestString(t *testing.T) {
+	var expected = []string{
+		"",
+		"(5 nil nil black)*",
+		"(1 nil 2 black)*(2 nil nil red)",
+		"(1 nil nil red)(2 1 3 black)*(3 nil nil red)",
+		"(1 nil nil black)(2 1 3 black)*(3 nil 4 black)(4 nil nil red)",
+		"(1 nil nil black)(2 1 4 black)*(3 nil nil red)(4 3 5 black)(5 nil nil red)"}
+
+	for i, td := range testData[:len(expected)] {
+		tree := New()
+		tree.Insert(td...)
+		str := tree.String()
+		if expected[i] != str {
+			t.Errorf("\nexpected %v\nactual   %v", expected[i], str)
+		}
+	}
+
+	var reverseExpected = []string{
+		"(1 nil nil red)(2 1 nil black)*",
+		"(1 nil nil red)(2 1 3 black)*(3 nil nil red)",
+		"(1 nil nil red)(2 1 nil black)(3 2 4 black)*(4 nil nil black)"}
+
+	for i, td := range reverseTestData[:len(reverseExpected)] {
+		tree := New()
+		tree.Insert(td...)
+		str := tree.String()
+		if reverseExpected[i] != str {
+			t.Errorf("\nexpected %v\nactual   %v", reverseExpected[i], str)
+		}
+	}
 }
 
 func TestSize(t *testing.T) {
-	{
+	for _, td := range testData {
 		tree := New()
-		if tree.Size() != 0 {
-			t.Error("Size() failed on an empty trree")
+		tree.Insert(td...)
+		if tree.Size() != len(td) {
+			t.Error("Insert failed on input with ", len(td), " elements")
 		}
 	}
+}
 
-	{
-		tree := New()
-		values := []int64{1}
-		tree.Insert(values...)
-		if tree.Size() != len(values) {
-			t.Error("Size() failed after one insertion")
-		}
+func TestFail(t *testing.T) {
+	expected := "(1 nil nil red)(2 1 3 black)*(3 nil nil red)"
+	data := []int64{3, 2, 1}
+	tree := New()
+	tree.Insert(data...)
+	str := tree.String()
+	if expected != str {
+		t.Errorf("\nexpected %v\nactual   %v", expected, str)
 	}
-
-	{
-		tree := New()
-		values := []int64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-		tree.Insert(values...)
-		if tree.Size() != len(values) {
-			t.Error("Size() failed after %d insertion", len(values))
-		}
-	}
-
 }
 
 func TestRange(t *testing.T) {
-	{
+	for _, td := range testData {
 		tree := New()
-		for _ = range tree.Iterate() {
-			t.Error("an empty tree should never iterate")
+		tree.Insert(td...)
+		if tree.Size() != len(td) {
+			t.Error("Insert failed on input with ", len(td), " elements")
 		}
-	}
 
-	{
-		tree := New()
-		expected := []int64{1}
-		tree.Insert(expected...)
-		actual := 0
-		for _ = range tree.Iterate() {
-			actual++
+		actual := make([]int64, 0, len(td))
+		for n := range tree.Iterate() {
+			actual = append(actual, n)
 		}
-		if actual != tree.Size() {
-			t.Error("iteration failed after iteration of one item")
-		}
-	}
 
-	{
-		tree := New()
-		expected := []int64{5, 4, 7, 3, 2, 6, 8, 9}
-		fmt.Println("expected length: ", len(expected))
-
-		tree.Insert(expected...)
-		fmt.Println(tree)
-		for _ = range tree.Iterate() {
-			//fmt.Println(v)
+		if !reflect.DeepEqual(td, actual) {
+			t.Error("Iterate failed on ", td)
 		}
 	}
 }
@@ -109,18 +138,18 @@ func TestBasicRotateRight(t *testing.T) {
 	expected := []int64{4, 5, 2, 1, 3}
 	tree := New()
 	tree.Insert(expected...)
-	fmt.Println("before: ", tree.String())
-	tree.rotateRight(tree.root)
-	fmt.Println("after: ", tree.String())
+	t.Log("before: ", tree.String())
+	tree.rotateRight_case4(tree.root)
+	t.Log("after: ", tree.String())
 }
 
 func TestBasicRotateLeft(t *testing.T) {
 	expected := []int64{2, 1, 4, 3, 5}
 	tree := New()
 	tree.Insert(expected...)
-	fmt.Println("before: ", tree.String())
-	tree.rotateLeft(tree.root)
-	fmt.Println("after: ", tree.String())
+	t.Log("before: ", tree.String())
+	tree.rotateLeft_case4(tree.root)
+	t.Log("after: ", tree.String())
 }
 
 func TestSmallClone(t *testing.T) {
@@ -139,7 +168,7 @@ func TestSmallSlice(t *testing.T) {
 	tree := New()
 	tree.Insert(values...)
 	slice := tree.Slice()
-	fmt.Println(slice)
+	t.Log(slice)
 	if !reflect.DeepEqual(slice, expected) {
 		t.Error("Expected ", expected, " got ", slice)
 	}

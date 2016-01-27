@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"strconv"
 )
 
 type color bool
@@ -111,10 +112,11 @@ func (t *RBTree) Insert(values ...int64) {
 	} // end for loop
 }
 
-func (t *RBTree) rotateRight(n *Node) {
+func (t *RBTree) rotateRight_case4(n *Node) {
 	lchild := n.left
 	if n == t.root {
 		t.root = lchild
+		t.root.parent = nil
 	}
 	n.left = lchild.right
 	lchild.right = n
@@ -122,15 +124,42 @@ func (t *RBTree) rotateRight(n *Node) {
 	n.parent = lchild
 }
 
-func (t *RBTree) rotateLeft(n *Node) {
+func (t *RBTree) rotateLeft_case4(n *Node) {
 	rchild := n.right
 	if n == t.root {
 		t.root = rchild
+		t.root.parent = nil
 	}
 	n.right = rchild.left
 	rchild.left = n
 	rchild.parent = n.parent
 	n.parent = rchild
+}
+
+func (t *RBTree) rotateLeft_case5(n *Node) {
+	rchild := n.right
+	rchild.parent = n.parent
+	if n == t.root {
+		t.root = rchild
+	} else {
+		rchild.parent.right = rchild
+	}
+	rchild.left = n
+	n.parent = rchild
+	n.right = nil
+}
+
+func (t *RBTree) rotateRight_case5(n *Node) {
+	lchild := n.left
+	lchild.parent = n.parent
+	if n == t.root {
+		t.root = lchild
+	} else {
+		lchild.parent.left = lchild
+	}
+	lchild.right = n
+	n.parent = lchild
+	n.left = nil
 }
 
 func (t *RBTree) insertCase1(n *Node) {
@@ -142,16 +171,17 @@ func (t *RBTree) insertCase1(n *Node) {
 }
 
 func (t *RBTree) insertCase2(n *Node) {
-	if n.parent.color != black {
+	if n.parent.color == red {
 		t.insertCase3(n)
 	}
 }
 
 func (t *RBTree) insertCase3(n *Node) {
-	gp := grandparent(n)
 	u := uncle(n)
 	if u != nil && u.color == red {
 		n.parent.color = black
+		u.color = black
+		gp := grandparent(n)
 		gp.color = red
 		t.insertCase1(gp)
 	} else {
@@ -161,11 +191,11 @@ func (t *RBTree) insertCase3(n *Node) {
 
 func (t *RBTree) insertCase4(n *Node) {
 	gp := grandparent(n)
-	if n == n.parent.right && n.parent == gp.left {
-		t.rotateLeft(n)
+	if n == n.parent.right && n.parent == gp.left { // n is a right child of a left child
+		t.rotateLeft_case4(n)
 		n = n.left
-	} else if n == n.parent.left && n.parent == gp.right {
-		t.rotateRight(n)
+	} else if n == n.parent.left && n.parent == gp.right { // n is a left child of a right child
+		t.rotateRight_case4(n)
 		n = n.right
 	}
 	t.insertCase5(n)
@@ -173,12 +203,15 @@ func (t *RBTree) insertCase4(n *Node) {
 
 func (t *RBTree) insertCase5(n *Node) {
 	gp := grandparent(n)
+	if gp == nil {
+		return
+	}
 	n.parent.color = black
 	gp.color = red
 	if n == n.parent.left {
-		t.rotateRight(gp)
+		t.rotateRight_case5(gp)
 	} else {
-		t.rotateLeft(gp)
+		t.rotateLeft_case5(gp)
 	}
 }
 
@@ -263,7 +296,19 @@ func (t *RBTree) Do(fn func(*Node)) {
 func (t *RBTree) String() string {
 	buffer := &bytes.Buffer{}
 	fn := func(n *Node) {
-		buffer.WriteString(fmt.Sprintf("(%d, %s)", n.value, n.color))
+		format := "(%d %v %v %s)"
+		if n == t.root {
+			format = "(%d %v %v %s)*"
+		}
+		leftVal := "nil"
+		rightVal := "nil"
+		if n.left != nil {
+			leftVal = strconv.Itoa(int(n.left.value))
+		}
+		if n.right != nil {
+			rightVal = strconv.Itoa(int(n.right.value))
+		}
+		buffer.WriteString(fmt.Sprintf(format, n.value, leftVal, rightVal, n.color))
 	}
 	t.Do(TraverseInOrder(fn))
 	return buffer.String()
@@ -282,7 +327,6 @@ func (t *RBTree) Iterate() <-chan int64 {
 	fn := func(n *Node) {
 		count++
 		ch <- n.value
-		fmt.Println("count: ", count, " nodeCount: ", t.nodeCount, " value: ", n.value)
 		if count == t.nodeCount {
 			close(ch)
 		}
