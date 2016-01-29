@@ -144,9 +144,9 @@ func (t *RBTree) rotateLeft_case5(n *Node) {
 	} else {
 		rchild.parent.right = rchild
 	}
+	n.right = rchild.left
 	rchild.left = n
 	n.parent = rchild
-	n.right = nil
 }
 
 func (t *RBTree) rotateRight_case5(n *Node) {
@@ -157,9 +157,9 @@ func (t *RBTree) rotateRight_case5(n *Node) {
 	} else {
 		lchild.parent.left = lchild
 	}
+	n.left = lchild.right
 	lchild.right = n
 	n.parent = lchild
-	n.left = nil
 }
 
 func (t *RBTree) insertCase1(n *Node) {
@@ -210,7 +210,7 @@ func (t *RBTree) insertCase5(n *Node) {
 	gp.color = red
 	if n == n.parent.left {
 		t.rotateRight_case5(gp)
-	} else {
+	} else if n == n.parent.right  {
 		t.rotateLeft_case5(gp)
 	}
 }

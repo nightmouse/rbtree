@@ -3,6 +3,7 @@ package rbtree
 import (
 	"reflect"
 	"testing"
+	"sort"
 )
 
 var testData = [][]int64{
@@ -13,6 +14,10 @@ var testData = [][]int64{
 	{1, 2, 3, 4},
 	{1, 2, 3, 4, 5},
 	{1, 2, 3, 4, 5, 6},
+	{1, 2, 3, 4, 5, 6, 7},
+	{1, 2, 3, 4, 5, 6, 8},
+	{1, 2, 3, 4, 5, 6, 8, 9},
+	{1, 2, 3, 4, 5, 6, 8, 9, 10},
 }
 
 var reverseTestData = [][]int64{
@@ -21,7 +26,23 @@ var reverseTestData = [][]int64{
 	{4, 3, 2, 1},
 	{5, 4, 3, 2, 1},
 	{6, 5, 4, 3, 2, 1},
+	{7, 6, 5, 4, 3, 2, 1},
+	{8, 6, 5, 4, 3, 2, 1},
+	{9, 8, 6, 5, 4, 3, 2, 1},
+	{10,9, 8, 6, 5, 4, 3, 2, 1},
 }
+
+type Int64Slice []int64
+func (s Int64Slice) Less(i, j int) bool {
+    return s[i] <  s[j]
+}
+func(s Int64Slice) Len() int {
+    return len(s)
+}
+func(s Int64Slice) Swap(i, j int) {
+    s[j], s[i] = s[i], s[j]
+}
+
 
 func TestNew(t *testing.T) {
 	tree := New()
@@ -104,16 +125,6 @@ func TestSize(t *testing.T) {
 	}
 }
 
-func TestFail(t *testing.T) {
-	expected := "(1 nil nil red)(2 1 3 black)*(3 nil nil red)"
-	data := []int64{3, 2, 1}
-	tree := New()
-	tree.Insert(data...)
-	str := tree.String()
-	if expected != str {
-		t.Errorf("\nexpected %v\nactual   %v", expected, str)
-	}
-}
 
 func TestRange(t *testing.T) {
 	for _, td := range testData {
@@ -130,6 +141,26 @@ func TestRange(t *testing.T) {
 
 		if !reflect.DeepEqual(td, actual) {
 			t.Error("Iterate failed on ", td)
+		}
+	}
+}
+
+func TestRangeReverse(t *testing.T) {
+	for _, td := range reverseTestData {
+		tree := New()
+		tree.Insert(td...)
+		if tree.Size() != len(td) {
+			t.Error("Insert failed on input with ", len(td), " elements")
+		}
+
+		actual := make([]int64, 0, len(td))
+		for n := range tree.Iterate() {
+			actual = append(actual, n)
+		}
+
+        sort.Sort(sort.Reverse(Int64Slice(actual)))
+		if !reflect.DeepEqual(td, actual) {
+			t.Error("Expected: ", td, "Actual: ", actual)
 		}
 	}
 }
