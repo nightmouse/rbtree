@@ -1,9 +1,10 @@
 package rbtree
 
 import (
+	"math/rand"
 	"reflect"
-	"testing"
 	"sort"
+	"testing"
 )
 
 var testData = [][]int64{
@@ -18,6 +19,7 @@ var testData = [][]int64{
 	{1, 2, 3, 4, 5, 6, 8},
 	{1, 2, 3, 4, 5, 6, 8, 9},
 	{1, 2, 3, 4, 5, 6, 8, 9, 10},
+	{4, 3, 5, 2, 1},
 }
 
 var reverseTestData = [][]int64{
@@ -29,20 +31,20 @@ var reverseTestData = [][]int64{
 	{7, 6, 5, 4, 3, 2, 1},
 	{8, 6, 5, 4, 3, 2, 1},
 	{9, 8, 6, 5, 4, 3, 2, 1},
-	{10,9, 8, 6, 5, 4, 3, 2, 1},
+	{10, 9, 8, 6, 5, 4, 3, 2, 1},
 }
 
 type Int64Slice []int64
-func (s Int64Slice) Less(i, j int) bool {
-    return s[i] <  s[j]
-}
-func(s Int64Slice) Len() int {
-    return len(s)
-}
-func(s Int64Slice) Swap(i, j int) {
-    s[j], s[i] = s[i], s[j]
-}
 
+func (s Int64Slice) Less(i, j int) bool {
+	return s[i] < s[j]
+}
+func (s Int64Slice) Len() int {
+	return len(s)
+}
+func (s Int64Slice) Swap(i, j int) {
+	s[j], s[i] = s[i], s[j]
+}
 
 func TestNew(t *testing.T) {
 	tree := New()
@@ -58,9 +60,9 @@ func TestSimpleColor(t *testing.T) {
 	if tree.root.color != black {
 		t.Error("After 1 insertion: the root node should be black")
 	}
-
 	tree.Insert(3)
 	tree.Insert(1)
+
 	// the root node should still be black, and the child node should be red
 	if tree.root.color != black {
 		t.Error("After 3 insertions: the root node should be black")
@@ -125,7 +127,6 @@ func TestSize(t *testing.T) {
 	}
 }
 
-
 func TestRange(t *testing.T) {
 	for _, td := range testData {
 		tree := New()
@@ -138,7 +139,7 @@ func TestRange(t *testing.T) {
 		for n := range tree.Iterate() {
 			actual = append(actual, n)
 		}
-
+		sort.Sort(Int64Slice(td))
 		if !reflect.DeepEqual(td, actual) {
 			t.Error("Iterate failed on ", td)
 		}
@@ -158,29 +159,11 @@ func TestRangeReverse(t *testing.T) {
 			actual = append(actual, n)
 		}
 
-        sort.Sort(sort.Reverse(Int64Slice(actual)))
+		sort.Sort(sort.Reverse(Int64Slice(actual)))
 		if !reflect.DeepEqual(td, actual) {
 			t.Error("Expected: ", td, "Actual: ", actual)
 		}
 	}
-}
-
-func TestBasicRotateRight(t *testing.T) {
-	expected := []int64{4, 5, 2, 1, 3}
-	tree := New()
-	tree.Insert(expected...)
-	t.Log("before: ", tree.String())
-	tree.rotateRight_case4(tree.root)
-	t.Log("after: ", tree.String())
-}
-
-func TestBasicRotateLeft(t *testing.T) {
-	expected := []int64{2, 1, 4, 3, 5}
-	tree := New()
-	tree.Insert(expected...)
-	t.Log("before: ", tree.String())
-	tree.rotateLeft_case4(tree.root)
-	t.Log("after: ", tree.String())
 }
 
 func TestSmallClone(t *testing.T) {
@@ -203,6 +186,26 @@ func TestSmallSlice(t *testing.T) {
 	if !reflect.DeepEqual(slice, expected) {
 		t.Error("Expected ", expected, " got ", slice)
 	}
+}
+
+func TestFail(t *testing.T) {
+	values := []int64{87, 22, 60}
+	tree := New()
+	tree.Insert(values...)
+	tree.Insert(50)
+	tree.Insert(2)
+	tree.Insert(6)
+	t.Log(tree)
+}
+
+func Test100Rand(t *testing.T) {
+	rand.Seed(0)
+	tree := New()
+	for i := 0; i != 100; i++ {
+		val := rand.Int63()
+		tree.Insert(val)
+	}
+	t.Log(tree)
 }
 
 func BenchmarkInsert1k(b *testing.B) {
