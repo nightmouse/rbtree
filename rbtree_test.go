@@ -46,6 +46,18 @@ func (s Int64Slice) Swap(i, j int) {
 	s[j], s[i] = s[i], s[j]
 }
 
+func scramble(seed int64, slice []int64) []int64 {
+	rand.Seed(seed)
+	size := len(slice)
+	s := make([]int64, size)
+	copy(s, slice)
+	for i := 0; i != size; i++ {
+		j := rand.Intn(size)
+		s[j], s[i] = s[i], s[j]
+	}
+	return s
+}
+
 func TestNew(t *testing.T) {
 	tree := New()
 	if tree.String() != "" {
@@ -87,11 +99,11 @@ func TestInsert(t *testing.T) {
 func TestString(t *testing.T) {
 	var expected = []string{
 		"",
-		"(5 nil nil black)*",
-		"(1 nil 2 black)*(2 nil nil red)",
-		"(1 nil nil red)(2 1 3 black)*(3 nil nil red)",
-		"(1 nil nil black)(2 1 3 black)*(3 nil 4 black)(4 nil nil red)",
-		"(1 nil nil black)(2 1 4 black)*(3 nil nil red)(4 3 5 black)(5 nil nil red)"}
+		"(5 nil nil nil black)*",
+		"(1 nil 2 nil black)*(2 nil nil 1 red)",
+		"(1 nil nil 2 red)(2 1 3 nil black)*(3 nil nil 2 red)",
+		"(1 nil nil 2 black)(2 1 3 nil black)*(3 nil 4 2 black)(4 nil nil 3 red)",
+		"(1 nil nil 2 black)(2 1 4 nil black)*(3 nil nil 4 red)(4 3 5 2 black)(5 nil nil 4 red)"}
 
 	for i, td := range testData[:len(expected)] {
 		tree := New()
@@ -103,9 +115,9 @@ func TestString(t *testing.T) {
 	}
 
 	var reverseExpected = []string{
-		"(1 nil nil red)(2 1 nil black)*",
-		"(1 nil nil red)(2 1 3 black)*(3 nil nil red)",
-		"(1 nil nil red)(2 1 nil black)(3 2 4 black)*(4 nil nil black)"}
+		"(1 nil nil 2 red)(2 1 nil nil black)*",
+		"(1 nil nil 2 red)(2 1 3 nil black)*(3 nil nil 2 red)",
+		"(1 nil nil 2 red)(2 1 nil 3 black)(3 2 4 nil black)*(4 nil nil 3 black)"}
 
 	for i, td := range reverseTestData[:len(reverseExpected)] {
 		tree := New()
@@ -189,23 +201,60 @@ func TestSmallSlice(t *testing.T) {
 }
 
 func TestFail(t *testing.T) {
-	values := []int64{87, 22, 60}
+	values := []int64{1,2,3,4,5,6,7,8,9}
+	expected := []int64{1,2,3,4,5,6,7,8,9}
 	tree := New()
 	tree.Insert(values...)
-	tree.Insert(50)
-	tree.Insert(2)
-	tree.Insert(6)
-	t.Log(tree)
+	slice := tree.Slice()
+	t.Log(slice)
+	if !reflect.DeepEqual(slice, expected) {
+		t.Error("Expected ", expected, " got ", slice)
+	}
 }
 
-func Test100Rand(t *testing.T) {
-	rand.Seed(0)
+func TestFind(t *testing.T) {
+	values := []int64{24, 53, 70, 12, 96, 67, 61, 88, 28, 37, 16}
 	tree := New()
-	for i := 0; i != 100; i++ {
-		val := rand.Int63()
-		tree.Insert(val)
+	tree.Insert(values...)
+
+    if tree.Find(24) == false {
+        t.Error("couldn't find 24")
+    }
+    if tree.Find(16) == false {
+        t.Error("couldn't find 16")
+    }
+
+    if tree.Find(42) == true {
+        t.Error("found a number that didn't exist 16")
+    }
+}
+
+func scrambleTesting(t *testing.T, length int) {
+	expected := make([]int64, length)
+	tree := New()
+	for i := int64(0); i != int64(length); i++ {
+		expected[i] = i
 	}
-	t.Log(tree)
+
+	scrambled := scramble(0, expected)
+	tree.Insert(scrambled...)
+	slice := tree.Slice()
+	if !reflect.DeepEqual(slice, expected) {
+		t.Error("\nscrambled(", length, "): expected ", expected, "\ngot ", slice)
+	}
+
+	clone := tree.Clone()
+	if !reflect.DeepEqual(slice, clone.Slice()) {
+	    t.Error("\nscrambled(", length, "): Slice of the cloned tree is not equal. \nslice: ", slice, "\nclone:", clone.Slice())
+	}
+}
+
+func TestScramble(t *testing.T) {
+	scrambleTesting(t, 10)
+	scrambleTesting(t, 100)
+	scrambleTesting(t, 1000)
+	scrambleTesting(t, 100000)
+	scrambleTesting(t, 10000000)
 }
 
 func BenchmarkInsert1k(b *testing.B) {

@@ -31,7 +31,7 @@ type RBTree struct {
 
 type Node struct {
 	color  color
-	value  int64
+	Value  int64
 	left   *Node
 	right  *Node
 	parent *Node
@@ -40,7 +40,7 @@ type Node struct {
 // creates a new leaf node
 func newLeafNode(parent *Node, value int64) *Node {
 	return &Node{color: red,
-		value:  value,
+		Value:  value,
 		left:   nil,
 		right:  nil,
 		parent: parent}
@@ -91,16 +91,16 @@ func (t *RBTree) Insert(values ...int64) {
 
 		n := t.root
 		for {
-			if n.value == v {
+			if n.Value == v {
 				break
-			} else if v < n.value {
+			} else if v < n.Value {
 				if n.left == nil {
 					n.left = newLeafNode(n, v)
 					t.insertCase1(n.left)
 					break
 				}
 				n = n.left
-			} else if v > n.value {
+			} else if v > n.Value {
 				if n.right == nil {
 					n.right = newLeafNode(n, v)
 					t.insertCase1(n.right)
@@ -139,30 +139,6 @@ func (t *RBTree) insertCase3(n *Node) {
 	}
 }
 
-// n is a left child, and has a right child
-func (t *RBTree) rotateLeftCase4(n *Node) {
-	rchild := n.right
-	parent := n.parent
-
-	n.right = nil
-	rchild.left = n
-	rchild.parent = parent
-	n.parent = rchild
-	parent.left = rchild
-}
-
-// n is a right child and has a left child
-func (t *RBTree) rotateRightCase4(n *Node) {
-	lchild := n.left
-	parent := n.parent
-
-	n.left = nil
-	lchild.right = n
-	lchild.parent = parent
-	n.parent = lchild
-	parent.right = lchild
-}
-
 func (t *RBTree) insertCase4(n *Node) {
 	gp := grandparent(n)
 	if gp == nil {
@@ -170,50 +146,67 @@ func (t *RBTree) insertCase4(n *Node) {
 	}
 
 	if n == n.parent.right && n.parent == gp.left { // n is a right child of a left child
-		t.rotateLeftCase4(n.parent)
+		t.rotateLeft(n.parent)
 		n = n.left
 	} else if n == n.parent.left && n.parent == gp.right { // n is a left child of a right child
-		t.rotateRightCase4(n.parent)
+		t.rotateRight(n.parent)
 		n = n.right
 	}
 	t.insertCase5(n)
 }
 
-func (t *RBTree) rotateLeftCase5(n *Node) {
+func (t *RBTree) rotateLeft(n *Node) {
 	rchild := n.right
-	rchild.parent = n.parent
 	if n == t.root {
 		t.root = rchild
 	} else {
-		rchild.parent.right = rchild
+		if n == n.parent.left {
+			n.parent.left = rchild
+		} else if n == n.parent.right {
+		    n.parent.right = rchild
+        }
 	}
+
 	n.right = rchild.left
+	rchild.parent = n.parent
+    if rchild.left != nil {
+        rchild.left.parent = n
+    }
 	rchild.left = n
 	n.parent = rchild
 }
 
-func (t *RBTree) rotateRightCase5(n *Node) {
+func (t *RBTree) rotateRight(n *Node) {
 	lchild := n.left
-	lchild.parent = n.parent
+
 	if n == t.root {
 		t.root = lchild
 	} else {
-		lchild.parent.left = lchild
+		if n == n.parent.left {
+			n.parent.left = lchild
+		} else if n == n.parent.right {
+			n.parent.right = lchild
+		}
 	}
-	n.left = lchild.right
+
+    n.left = lchild.right
+	lchild.parent = n.parent
+    if lchild.right != nil {
+        lchild.right.parent = n
+    }
 	lchild.right = n
 	n.parent = lchild
 }
 
 func (t *RBTree) insertCase5(n *Node) {
 	gp := grandparent(n)
-
 	n.parent.color = black
 	gp.color = red
+
 	if n == n.parent.left {
-		t.rotateRightCase5(gp)
+		t.rotateRight(gp)
 	} else if n == n.parent.right {
-		t.rotateLeftCase5(gp)
+		t.rotateLeft(gp)
 	}
 }
 
@@ -288,9 +281,44 @@ func TraverseBreadthFirst(fn func(*Node)) func(*Node) {
 	return traverse
 }
 
+
+// a function to test the tree invariant, useful for debugging
+func (t *RBTree) testInvariant(last int64) {
+    fn := func(n *Node) {
+        if n.parent == nil { return }
+        if n == n.parent.left && !(n.Value < n.parent.Value) {
+            panic(fmt.Sprintf("left child's value is greater than the parent value after insert %d", last))
+        } else if n == n.parent.right && !(n.Value > n.parent.Value) {
+            panic(fmt.Sprintf("right child's value is less than the parent value after insert %d", last))
+        } else if n != n.parent.right && n != n.parent.left {
+            panic(fmt.Sprintf("n != n.parent.right && n != n.parennt.left after node: %v parent: %v", n, n.parent))
+        }
+    }
+    t.Do(TraverseBreadthFirst(fn))
+}
+
 // Applies fn to the root node.
 func (t *RBTree) Do(fn func(*Node)) {
 	fn(t.root)
+}
+
+// Returns true if val is found in the tree
+func (t *RBTree) Find(val int64) bool {
+	found := false
+	f := func(n *Node) {
+		for n != nil {
+			if n.Value == val {
+                found = true
+				break
+			} else if val < n.Value {
+				n = n.left
+			} else {
+				n = n.right
+			}
+		}
+	}
+	t.Do(f)
+	return found
 }
 
 // Creates a string by visting the nodes in order, with the format of:
@@ -298,19 +326,23 @@ func (t *RBTree) Do(fn func(*Node)) {
 func (t *RBTree) String() string {
 	buffer := &bytes.Buffer{}
 	fn := func(n *Node) {
-		format := "(%d %v %v %s)"
+		format := "(%d %v %v %v %s)"
 		if n == t.root {
-			format = "(%d %v %v %s)*"
+			format = "(%d %v %v %v %s)*"
 		}
 		leftVal := "nil"
 		rightVal := "nil"
+        parentVal := "nil"
 		if n.left != nil {
-			leftVal = strconv.Itoa(int(n.left.value))
+			leftVal = strconv.Itoa(int(n.left.Value))
 		}
 		if n.right != nil {
-			rightVal = strconv.Itoa(int(n.right.value))
+			rightVal = strconv.Itoa(int(n.right.Value))
 		}
-		buffer.WriteString(fmt.Sprintf(format, n.value, leftVal, rightVal, n.color))
+		if n.parent != nil {
+			parentVal = strconv.Itoa(int(n.parent.Value))
+		}
+		buffer.WriteString(fmt.Sprintf(format, n.Value, leftVal, rightVal, parentVal, n.color))
 	}
 	t.Do(TraverseInOrder(fn))
 	return buffer.String()
@@ -328,7 +360,7 @@ func (t *RBTree) Iterate() <-chan int64 {
 
 	fn := func(n *Node) {
 		count++
-		ch <- n.value
+		ch <- n.Value
 		if count == t.nodeCount {
 			close(ch)
 		}
@@ -342,7 +374,7 @@ func (t *RBTree) Iterate() <-chan int64 {
 func (t *RBTree) Clone() *RBTree {
 	newTree := New()
 	fn := func(n *Node) {
-		newTree.Insert(n.value)
+		newTree.Insert(n.Value)
 	}
 	t.Do(TraverseBreadthFirst(fn))
 	return newTree
@@ -352,7 +384,7 @@ func (t *RBTree) Clone() *RBTree {
 func (t *RBTree) Slice() []int64 {
 	slice := make([]int64, 0, t.Size())
 	fn := func(n *Node) {
-		slice = append(slice, n.value)
+		slice = append(slice, n.Value)
 	}
 	t.Do(TraverseInOrder(fn))
 	return slice
